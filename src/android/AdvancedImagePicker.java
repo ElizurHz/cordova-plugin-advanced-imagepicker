@@ -37,7 +37,6 @@ public class AdvancedImagePicker extends CordovaPlugin {
 
     private CallbackContext _callbackContext;
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
-    private boolean asBase64;
     private boolean asJpeg;
     private int max;
 
@@ -59,7 +58,7 @@ public class AdvancedImagePicker extends CordovaPlugin {
                 public void run() {
                     pickMedia = cordova.getActivity().registerForActivityResult(new PickMultipleVisualMedia(10), result -> {
                         if (!result.isEmpty()) {
-                            handleResult(result, false, "image", false);
+                            handleResult(result, "image", false);
                         } else {
                             returnError(AdvancedImagePickerErrorCodes.PickerCanceled, "User cancelled");
                         }
@@ -112,7 +111,6 @@ public class AdvancedImagePicker extends CordovaPlugin {
         String maxCountMessage = options.optString("maxCountMessage", defaultMaxCountMessage);
         String buttonText = options.optString("buttonText");
         boolean asDropdown = options.optBoolean("asDropdown");
-        boolean asBase64 = options.optBoolean("asBase64");
         boolean asJpeg = options.optBoolean("asJpeg");
 
         if (min < 0 || max < 0) {
@@ -157,7 +155,7 @@ public class AdvancedImagePicker extends CordovaPlugin {
         if (max == 1) {
             String finalType = type;
             builder.start(result -> {
-                this.handleResult(result, asBase64, finalType, asJpeg);
+                this.handleResult(result, finalType, asJpeg);
             });
         } else {
             if (min > 0) {
@@ -170,7 +168,7 @@ public class AdvancedImagePicker extends CordovaPlugin {
             String finalType1 = type;
             try{
                 builder.startMultiImage(result -> {
-                    this.handleResult(result, asBase64, finalType1, asJpeg);
+                    this.handleResult(result, finalType1, asJpeg);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -195,11 +193,9 @@ public class AdvancedImagePicker extends CordovaPlugin {
         String maxCountMessage = options.optString("maxCountMessage", defaultMaxCountMessage);
         String buttonText = options.optString("buttonText");
         boolean asDropdown = options.optBoolean("asDropdown");
-        boolean asBase64 = options.optBoolean("asBase64");
         boolean asJpeg = options.optBoolean("asJpeg");
         boolean storagePermission = this.hasPermissions(this.permissions);
 
-        this.asBase64 = asBase64;
         this.asJpeg = asJpeg;
         this.max = max;
 
@@ -227,28 +223,24 @@ public class AdvancedImagePicker extends CordovaPlugin {
         }
     }
 
-    private void handleResult(Uri uri, boolean asBase64, String type, boolean asJpeg) {
+    private void handleResult(Uri uri, String type, boolean asJpeg) {
         List<Uri> list = new ArrayList<>();
         list.add(uri);
-        this.handleResult(list, asBase64, type, asJpeg);
+        this.handleResult(list, type, asJpeg);
     }
 
-    private void handleResult(List<? extends Uri> uris, boolean asBase64, String type, boolean asJpeg) {
+    private void handleResult(List<? extends Uri> uris, String type, boolean asJpeg) {
         JSONArray result = new JSONArray();
         for (Uri uri : uris) {
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("type", type);
-            resultMap.put("isBase64", asBase64);
-            if (asBase64) {
-                try {
-                    resultMap.put("src", type.equals("video") ? this.encodeVideo(uri) : this.encodeImage(uri, asJpeg));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    this.returnError(AdvancedImagePickerErrorCodes.UnknownError, e.getMessage());
-                    return;
-                }
-            } else {
-                resultMap.put("src", uri.toString());
+            resultMap.put("isBase64", true);
+            try {
+                resultMap.put("src", type.equals("video") ? this.encodeVideo(uri) : this.encodeImage(uri, asJpeg));
+            } catch (Exception e) {
+                e.printStackTrace();
+                this.returnError(AdvancedImagePickerErrorCodes.UnknownError, e.getMessage());
+                return;
             }
             result.put(new JSONObject(resultMap));
         }
